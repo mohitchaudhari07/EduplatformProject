@@ -1,8 +1,8 @@
-const Tag = require('../models/Category');
+const Category = require('../models/Category');
 
-//create tag handler
+//create category handler
 
-exports.createTag = async (req, res) => {   
+exports.createCategory = async (req, res) => {
     try {
         const { name , description } = req.body;
         if (!name || !description) {
@@ -11,27 +11,59 @@ exports.createTag = async (req, res) => {
 
 
         //create entry in db
-        const tagDetails = await Tag.create({
+        const categoryDetails = await Category.create({
             name,
             description
         });
-        console.log(tagDetails)
+        console.log(categoryDetails)
     } catch (error) {
-        res.status(500).json({ message: 'Error creating tag', error });
+        res.status(500).json({ message: 'Error creating category', error });
     }
 }
 
 
-//get all tags handler
-exports.getAllTags = async (req, res) => {
+//get all categories handler
+exports.getAllCategories = async (req, res) => {
     try {
-        const allTags = await Tag.find({},{name:true, description:true});
-        if (!allTags) {
-            return res.status(404).json({ message: 'No tags found' });
+        const allCategories = await Category.find({},{name:true, description:true});
+        if (!allCategories) {
+            return res.status(404).json({ message: 'No categories found' });
         }
-        res.status(200).json(allTags);
+        res.status(200).json(allCategories);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching tags', error });
+        res.status(500).json({ message: 'Error fetching categories', error });
     }
 }
+
+//category details handler
+exports.getCategoryDetails = async (req, res) => {
+    try {
+        const { id } = req.body;
+        const categoryDetails = await Category.findById(id)
+                                             .populate("courses").exec();
+        if (!categoryDetails) {
+            return res.status(404).json({ message: 'Category not found' });
+        }
+    //get courses for different categories
+        const differentCategories = await Category.find({ _id: { $ne: id } })
+                                             .populate("courses").exec();
+
+     //get top selling courses
+     const topSellingCourses = await Category.aggregate([
+            { $unwind: "$courses" },
+            { $group: { _id: "$_id", courses: { $push: "$courses" } } },
+            { $project: { _id: 0, courses: 1 } }
+        ]);
+
+        res.status(200).json({
+            categoryDetails,
+            differentCategories,
+            topSellingCourses
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching category details', error });
+    }   
+
+};
 

@@ -115,3 +115,31 @@ exports.getAllCourses = async (req, res) => {
     res.status(500).json({ message: "Error fetching courses", error });
   }
 };
+
+
+//get course details
+
+exports.getCourseDetails = async (req, res) => {
+  try {
+    const {courseId} = req.body;
+    const courseDetails = await Course.findById(courseId)
+      .populate({
+        path: "instructor",
+        populate: {
+          path: "additionalDetails",
+        },
+      })
+      .populate("tag")
+      .populate("category")
+      .populate({path :"courseContent", populate: { path: "subSection" }})
+      .populate("ratingAndReviews")
+      .exec();
+
+    if (!courseDetails) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+    return res.status(200).json(courseDetails);
+  }catch (error) {
+    res.status(500).json({ message: "Error fetching course details", error });
+  } 
+}
